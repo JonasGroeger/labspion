@@ -1,73 +1,71 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
-from ConfigParser import NoSectionError, NoOptionError
 import pprint
-import subprocess
-import shlex
 import time
 import ConfigParser
 import logging
 
-from lxml import etree
+import pyesprima
+import requests
+from requests.auth import HTTPBasicAuth
 
 
 __author__ = 'Jonas Gröger <jonas.groeger@gmail.com>'
 
-CONFIG_FILE = '.config.cfg'
-DEVELOPMENT_MODE = True
+INI_FILE = 'labspion.ini'
 
 logging.basicConfig()
 logging.getLogger(__name__).setLevel(logging.DEBUG)
 
 
-def _get_connected_clients(sudo_password):
-    nmap_cmd = 'sudo nmap -sP 192.168.178.0/24 -oX -'
+def _get_clients(website, username, password):
+    response = requests.get(website, auth=HTTPBasicAuth(username, password))
 
-    p = subprocess.Popen(shlex.split(nmap_cmd), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    p.stdin.write(sudo_password + '\n')
-    p.stdin.flush()
-    out, err = p.communicate()
+    print response.status_code
+    if response.status_code != 200:
+        raise IOError('Could not retrieve {}'.format(website))
 
-    return out
+    html = response.text
+    first_script = html.partition('<script>')[2].partition('</script>')[0]
+    clients_as_string = pyesprima.parse(first_script).body[1].declarations[0].init.value
+
+    return clients_as_string.split(' @#$&*! ')
 
 
-def _make_client_list(clients_xml):
-    # Only clients with mac are relevant
-    root = etree.fromstring(clients_xml)
-    clients_with_mac = root.xpath('//host[address[@addrtype="mac"]]')
+def _read_login(config):
+    section = 'labspion'
+    website = config.get(section, 'website')
+    username = config.get(section, 'username')
+    password = config.get(section, 'password')
+
+    return (website, username, password)
+
+
+def _read_config(ini_file):
+    config = ConfigParser.ConfigParser()
+    if config.read(ini_file) == []:
+        raise IOError('Could not find configuration file "{}".'.format(ini_file))
+
+    return config
+
+
+def _make_client_list():
+    config = _read_config(INI_FILE)
+    website, username, password = _read_login(config)
+    clients = _get_clients(website, username, password)
 
     clients_json = []
-    for client_id, client in enumerate(clients_with_mac):
+    for client_id, client_as_string in enumerate(clients):
+        client = client_as_string.split(' ')
 
-        try:
-            client_mac = client.xpath('./address[@addrtype="mac"]/@addr')[0]
-        except IndexError:
-            logging.debug('No MAC for client {}.'.format(client_id))
-            continue  # We identify clients by mac. So skip ones without mac
-
-        try:
-            client_ipv4 = client.xpath('./address[@addrtype="ipv4"]/@addr')[0]
-        except IndexError:
-            logging.debug('No IPv4 for client {} ({}).'.format(client_id, client_mac))
-            client_ipv4 = None
-
-        try:
-            client_ipv6 = client.xpath('./address[@addrtype="ipv6"]/@addr')[0]
-        except IndexError:
-            logging.debug('No IPv6 for client {} ({}).'.format(client_id, client_mac))
-            client_ipv6 = None
-
-        try:
-            client_hostname = client.xpath('./hostnames//hostname')[0].xpath('@name')[0]
-        except IndexError:
-            logging.debug('No hostname for client {} ({}).'.format(client_id, client_mac))
-            client_hostname = None
+        client_ip = client[0].strip()
+        client_mac = client[1].strip()
+        client_hostname = client[2].strip()
 
         clients_json.append({
             'id': client_id,
+            'ipv4': client_ip,
             'mac': client_mac,
-            'ipv4': client_ipv4,
-            'ipv6': client_ipv6,
             'hostname': client_hostname,
             'seen': int(time.time()),
         })
@@ -75,46 +73,8 @@ def _make_client_list(clients_xml):
     return clients_json
 
 
-def _get_clients_xml(sudo_password=None):
-    if DEVELOPMENT_MODE:
-        logging.debug('Reading clients from local "clients.xml".')
-        with open('clients.xml', 'r') as f:
-            clients_xml = f.read()
-    else:
-        logging.debug('Reading clients from nmap.')
-        clients_xml = _get_connected_clients(sudo_password)
-        logging.warning('There were no connected clients.')
-
-        with open('clients.xml', 'w') as f:
-            f.write(clients_xml)
-
-    return clients_xml
-
-
-def _get_sudo_password():
-    config = ConfigParser.ConfigParser()
-    sudo_password = None
-    try:
-        config.read(CONFIG_FILE)
-        sudo_password = config.get('labspion', 'sudo_password')
-    except IOError:
-        logging.error('Could not find the configuration file "{}". Please create one.'.format(CONFIG_FILE))
-        exit(1)
-    except (NoSectionError, NoOptionError):
-        logging.error('The configuration file must contain a section "[labspion]" with a key "sudo_password"')
-        exit(2)
-    if sudo_password in [None, '']:
-        logging.warning('The sudo password is empty. Really? I\'m using it anyway.')
-
-    return sudo_password
-
-
 def main():
-    sudo_password = _get_sudo_password()
-
-    clients_xml = _get_clients_xml(sudo_password)
-    clients_json = _make_client_list(clients_xml)
-
+    clients_json = _make_client_list()
     pprint.pprint(clients_json)
 
 
