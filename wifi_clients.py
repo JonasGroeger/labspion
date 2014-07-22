@@ -1,10 +1,12 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
+import codecs
 
 import pprint
 import time
 import ConfigParser
 import logging
+import re
 
 import pyesprima
 import requests
@@ -32,9 +34,11 @@ def _get_clients(website, username, password):
 
     html = response.text
     first_script = html.partition('<script>')[2].partition('</script>')[0]
-    clients_as_string = pyesprima.parse(first_script).body[1].declarations[0].init.value
+    mo = re.search("var attach_device_list=\"(.*)\";", first_script)
 
-    return clients_as_string.split(' @#$&*! ')
+    clients_js_var = mo.group(1)
+    no_clients = not bool(clients_js_var.strip())
+    return [] if no_clients else clients_js_var.split(' @#$&*! ')
 
 
 def _read_login(config):
@@ -43,12 +47,12 @@ def _read_login(config):
     username = config.get(section, 'username')
     password = config.get(section, 'password')
 
-    return (website, username, password)
+    return website, username, password
 
 
 def _read_config(ini_file):
     config = ConfigParser.ConfigParser()
-    if config.read(ini_file) == []:
+    if not config.read(ini_file):
         raise IOError('Could not find configuration file "{}".'.format(ini_file))
 
     return config
@@ -57,9 +61,11 @@ def _read_config(ini_file):
 def _hostname_from_table(mac):
     return hostname_table.get(mac, None)
 
+
 def split_clients(clients, now):
     one_hour = 1000 * 60 * 60
     clients_now = [c for c in clients if c['']]
+
 
 def active_clients():
     config = _read_config(INI_FILE)
