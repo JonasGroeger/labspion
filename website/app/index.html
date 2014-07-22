@@ -1,0 +1,151 @@
+<!doctype html>
+<html class="no-js">
+<head>
+    <meta charset="utf-8">
+    <title>website</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width">
+    <link rel="shortcut icon" href="/favicon.ico">
+    <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+    <!-- build:css(.) styles/vendor.css -->
+    <!-- bower:css -->
+    <!-- endbower -->
+    <!-- endbuild -->
+    <!-- build:css(.tmp) styles/main.css -->
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/dashboard.css">
+    <!-- endbuild -->
+</head>
+<body>
+<!--[if lt IE 10]>
+<p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade
+    your browser</a> to improve your experience.</p>
+<![endif]-->
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="container-fluid">
+        <div class="navbar-header">
+            <a class="navbar-brand" href="#">Der Labspion</a>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-3 col-md-2 sidebar">
+            <ul class="nav nav-sidebar">
+                <li class="active"><a href="{{ url_for('clients') }}">Aktive Clients</a></li>
+            </ul>
+            <ul class="nav nav-sidebar">
+                <li><a href="{{ url_for('clients/json') }}">JSON</a></li>
+            </ul>
+            <ul class="nav nav-sidebar">
+                <li><a href="{{ url_for('ueber') }}">Üeber</a></li>
+            </ul>
+        </div>
+
+        <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+            <h1 class="page-header">Aktive Clients</h1>
+
+            <h2 class="sub-header">Gerade aktiv</h2>
+
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                    <tr>
+                        <th>MAC</th>
+                        <th>IPv4</th>
+                        <th>Zuletzt gesehen</th>
+                        <th>Hostname</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        {% for client in active_clients %}}
+                        <td>00:87:40:8F:77:C6</td>
+                        <td>192.168.1.11</td>
+                        <td>vor 10 Sekunden</td>
+                        <td>RASPBERRYPI</td>
+                    </tr>
+                    <tr>
+                        <td>8C:70:5A:7A:2F:50</td>
+                        <td>192.168.1.2</td>
+                        <td>vor >2 Minuten</td>
+                        <td>JONAS-X230</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h2 class="sub-header">Heute aktiv</h2>
+
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                    <tr>
+                        <th>MAC</th>
+                        <th>IPv4</th>
+                        <th>Zuletzt gesehen</th>
+                        <th>Hostname</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>00:87:40:8F:77:C6</td>
+                        <td>192.168.1.11</td>
+                        <td>vor mehr als einer Stunde</td>
+                        <td>RASPBERRYPI</td>
+                    </tr>
+                    <tr>
+                        <td>8C:70:5A:7A:2F:50</td>
+                        <td>192.168.1.2</td>
+                        <td>vor mehr als einer Stunde</td>
+                        <td>JONAS-X230</td>
+                    </tr>
+                    <tr>
+                        <td>00:87:40:8F:77:C6</td>
+                        <td>192.168.1.11</td>
+                        <td>vor mehr als zwei Stunden</td>
+                        <td>RASPBERRYPI</td>
+                    </tr>
+                    <tr>
+                        <td>8C:70:5A:7A:2F:50</td>
+                        <td>192.168.1.2</td>
+                        <td>vor mehr als zwei Stunden</td>
+                        <td>JONAS-X230</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- build:js(.) scripts/vendor.js -->
+<!-- bower:js -->
+<script src="bower_components/jquery/dist/jquery.js"></script>
+<script src="bower_components/holderjs/holder.js"></script>
+<!-- endbower -->
+<!-- endbuild -->
+
+<!-- build:js(.) scripts/plugins.js -->
+<script src="bower_components/bootstrap-sass-official/vendor/assets/javascripts/bootstrap/affix.js"></script>
+<script src="bower_components/bootstrap-sass-official/vendor/assets/javascripts/bootstrap/alert.js"></script>
+<script src="bower_components/bootstrap-sass-official/vendor/assets/javascripts/bootstrap/dropdown.js"></script>
+<script src="bower_components/bootstrap-sass-official/vendor/assets/javascripts/bootstrap/tooltip.js"></script>
+<script src="bower_components/bootstrap-sass-official/vendor/assets/javascripts/bootstrap/modal.js"></script>
+<script src="bower_components/bootstrap-sass-official/vendor/assets/javascripts/bootstrap/transition.js"></script>
+<script src="bower_components/bootstrap-sass-official/vendor/assets/javascripts/bootstrap/button.js"></script>
+<script src="bower_components/bootstrap-sass-official/vendor/assets/javascripts/bootstrap/popover.js"></script>
+<script src="bower_components/bootstrap-sass-official/vendor/assets/javascripts/bootstrap/carousel.js"></script>
+<script src="bower_components/bootstrap-sass-official/vendor/assets/javascripts/bootstrap/scrollspy.js"></script>
+<script src="bower_components/bootstrap-sass-official/vendor/assets/javascripts/bootstrap/collapse.js"></script>
+<script src="bower_components/bootstrap-sass-official/vendor/assets/javascripts/bootstrap/tab.js"></script>
+<!-- endbuild -->
+
+<!-- build:js({app,.tmp}) scripts/main.js -->
+<script src="scripts/main.js"></script>
+<!-- endbuild -->
+</body>
+</html>

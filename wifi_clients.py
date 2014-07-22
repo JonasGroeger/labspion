@@ -1,5 +1,6 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
+
 import pprint
 import time
 import ConfigParser
@@ -17,13 +18,17 @@ INI_FILE = 'labspion.ini'
 logging.basicConfig()
 logging.getLogger(__name__).setLevel(logging.DEBUG)
 
+hostname_table = {
+    '00:87:40:8F:77:C6': u'Jonas Gröger Raspberry Pi',
+    '8C:70:5A:7A:2F:50': u'Jonas Gröger Laptop',
+}
+
 
 def _get_clients(website, username, password):
     response = requests.get(website, auth=HTTPBasicAuth(username, password))
 
-    print response.status_code
     if response.status_code != 200:
-        raise IOError('Could not retrieve {}'.format(website))
+        raise IOError('Could not retrieve {} (Code {}).'.format(website, response.status_code))
 
     html = response.text
     first_script = html.partition('<script>')[2].partition('</script>')[0]
@@ -49,22 +54,34 @@ def _read_config(ini_file):
     return config
 
 
-def _make_client_list():
+def _hostname_from_table(mac):
+    return hostname_table.get(mac, None)
+
+def split_clients(clients, now):
+    one_hour = 1000 * 60 * 60
+    clients_now = [c for c in clients if c['']]
+
+def active_clients():
     config = _read_config(INI_FILE)
     website, username, password = _read_login(config)
     clients = _get_clients(website, username, password)
 
     clients_json = []
-    for client_id, client_as_string in enumerate(clients):
+    for client_as_string in clients:
         client = client_as_string.split(' ')
-
-        client_ip = client[0].strip()
+        client_ipv4 = client[0].strip()
         client_mac = client[1].strip()
-        client_hostname = client[2].strip()
+
+        hostname_string = client[2].decode('utf-8').strip()
+        hostname_from_router = None if hostname_string == '&lt;unknown&gt;' else hostname_string
+        client_hostname = _hostname_from_table(client_mac) or hostname_from_router or u'Unbekannt'
+
+        print('1: {}'.format(type(hostname_string)))
+        print('2: {}'.format(type(hostname_from_router)))
+        print('3: {} - '.format(type(client_hostname)))
 
         clients_json.append({
-            'id': client_id,
-            'ipv4': client_ip,
+            'ipv4': client_ipv4,
             'mac': client_mac,
             'hostname': client_hostname,
             'seen': int(time.time()),
@@ -74,7 +91,7 @@ def _make_client_list():
 
 
 def main():
-    clients_json = _make_client_list()
+    clients_json = active_clients()
     pprint.pprint(clients_json)
 
 
