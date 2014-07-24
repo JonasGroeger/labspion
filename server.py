@@ -7,13 +7,13 @@ from flask.templating import render_template
 from flask import Response
 
 import database
+from main import PROJECT_DIR
 
 
 __author__ = u'Jonas Gröger <jonas.groeger@gmail.com>'
 
 from flask import Flask, redirect, url_for
 
-PROJECT_DIR = os.path.dirname(os.path.realpath(__file__))
 
 app = Flask(__name__)
 app.config.update(dict(

@@ -4,18 +4,14 @@ import os
 import pprint
 import time
 import ConfigParser
-import logging
 import re
 
 import requests
 
+from main import PROJECT_DIR, INI_FILE
+
+
 __author__ = 'Jonas Gröger <jonas.groeger@gmail.com>'
-
-PROJECT_DIR = os.path.dirname(os.path.realpath(__file__))
-INI_FILE = 'labspion.ini'
-
-logging.basicConfig()
-logging.getLogger(__name__).setLevel(logging.DEBUG)
 
 hostname_table = {
     '00:87:40:8F:77:C6': u'Jonas Gröger Raspberry Pi',
@@ -26,15 +22,15 @@ hostname_table = {
 }
 
 
-def _get_clients(website, username, password):
-    response = requests.get(website, auth=(username, password))
+def _get_clients(devices, username, password):
+    response = requests.get(devices, auth=(username, password))
 
     # Retry once on 401
     if response.status_code == 401:
-        response = requests.get(website, auth=(username, password))
+        response = requests.get(devices, auth=(username, password))
 
     if response.status_code != 200:
-        raise IOError('Could not retrieve {} (Code {}).'.format(website, response.status_code))
+        raise IOError('Could not retrieve {} (Code {}).'.format(devices, response.status_code))
 
     html = response.text
     first_script = html.partition('<script>')[2].partition('</script>')[0]
@@ -47,14 +43,16 @@ def _get_clients(website, username, password):
 
 def _read_login(config):
     section = 'labspion'
-    website = config.get(section, 'website')
+    ip = config.get(section, 'ip')
+    devices = config.get(section, 'devices')
+    login = config.get(section, 'login')
     username = config.get(section, 'username')
     password = config.get(section, 'password')
 
-    return website, username, password
+    return ip+devices, ip+login, username, password
 
 
-def _read_config(ini_file):
+def read_config(ini_file):
     config = ConfigParser.ConfigParser()
     if not config.read(ini_file):
         raise IOError('Could not find configuration file "{}".'.format(ini_file))
@@ -67,9 +65,9 @@ def _hostname_from_table(mac):
 
 
 def active_clients():
-    config = _read_config(os.path.join(PROJECT_DIR, INI_FILE))
-    website, username, password = _read_login(config)
-    clients = _get_clients(website, username, password)
+    config = read_config(os.path.join(PROJECT_DIR, INI_FILE))
+    devices, login, username, password = _read_login(config)
+    clients = _get_clients(devices, username, password)
 
     clients_json = []
     for client_as_string in clients:

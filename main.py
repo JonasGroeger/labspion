@@ -1,23 +1,32 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
+import logging
+import os
+import datetime
+
+import requests
+
 import trollius as asyncio
+import pytz
 
 import database
-from wifi_clients import active_clients
+from wifi_clients import active_clients, read_config, _read_login
 
 
 __author__ = 'Jonas Gröger <jonas.groeger@gmail.com>'
 
+PROJECT_DIR = os.path.dirname(os.path.realpath(__file__))
+INI_FILE = 'labspion.ini'
+
+logging.basicConfig()
+logging.getLogger(__name__).setLevel(logging.DEBUG)
+
 
 def seconds_until_4am():
-    import datetime
-    import pytz
-
     tz = pytz.timezone('Europe/Berlin')
-    tomorrow_4am = datetime.datetime.replace(datetime.datetime.now(tz) + datetime.timedelta(days=1), hour=4, minute=0, second=0)
-    seconds_until_4am = (tomorrow_4am - datetime.datetime.now(tz)).seconds
-    return seconds_until_4am
-
+    tomorrow_4am = datetime.datetime.replace(datetime.datetime.now(tz) + datetime.timedelta(days=1), hour=4, minute=0,
+                                             second=0)
+    return (tomorrow_4am - datetime.datetime.now(tz)).seconds
 
 
 @asyncio.coroutine
@@ -43,12 +52,22 @@ def clear_db(db):
         db.close()
 
 
+@asyncio.coroutine
+def update_router():
+    while True:
+        config = read_config(os.path.join(PROJECT_DIR, INI_FILE))
+        devices, login, username, password = _read_login(config)
+        requests.get(login, auth=(username, password))
+        yield asyncio.From(asyncio.sleep(12))
+
+
 def main():
     db = database.Database('labspion.db')
     loop = asyncio.get_event_loop()
     tasks = [
         loop.create_task(insert_clients(db)),
         loop.create_task(clear_db(db)),
+        loop.createtask(update_router())
     ]
     try:
         loop.run_until_complete(asyncio.wait(tasks))
