@@ -38,9 +38,7 @@ def clients_json():
 @app.route('/clients')
 def clients():
     c = db.clients()
-    return render_template('index.html',
-                           all_clients=c,
-                           active_clients=c)
+    return render_template('index.html', clients=c)
 
 
 @app.route('/ueber')

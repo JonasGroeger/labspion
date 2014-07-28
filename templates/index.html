@@ -6,7 +6,7 @@
 
     <h2 class="sub-header">Gerade aktiv</h2>
 
-    {% if active_clients %}
+    {% if clients %}
     <div class="table-responsive">
         <table class="table">
             <thead>
@@ -19,7 +19,7 @@
             </thead>
             <tbody>
 
-            {% for client in active_clients %}
+            {% for client in clients %}
             <tr>
                 <td>{{ client.mac }}</td>
                 <td>{{ client.ipv4 }}</td>
@@ -33,36 +33,6 @@
     </div>
     {% else %}
     <p class="lead">Gerade ist <em>niemand</em> im Lab.</p>
-    {% endif %}
-
-    <h2 class="sub-header">Heute aktiv</h2>
-
-    {% if all_clients %}
-    <div class="table-responsive">
-        <table class="table">
-            <thead>
-            <tr>
-                <th>MAC</th>
-                <th>IPv4</th>
-                <th>Gesehen</th>
-                <th>Hostname</th>
-            </tr>
-            </thead>
-            <tbody>
-            {% for client in all_clients %}
-            <tr>
-                <td>{{ client.mac }}</td>
-                <td>{{ client.ipv4 }}</td>
-                <td>{{ client.seen }}</td>
-                <td>{{ client.hostname|safe }}</td>
-            </tr>
-            {% endfor %}
-
-            </tbody>
-        </table>
-    </div>
-    {% else %}
-    <p class="lead">Heute war noch <em>niemand</em> im Lab.</p>
     {% endif %}
 </div>
 {% endblock %}
