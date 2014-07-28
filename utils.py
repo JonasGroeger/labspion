@@ -16,6 +16,7 @@ def seconds_ago(ago):
 
 def seconds_until_hour(hours):
     tz = pytz.timezone('Europe/Berlin')
-    tomorrow_4am = datetime.datetime.replace(datetime.datetime.now(tz) + datetime.timedelta(days=1), hour=hours, minute=0,
+    tomorrow_4am = datetime.datetime.replace(datetime.datetime.now(tz) + datetime.timedelta(days=1), hour=hours,
+                                             minute=0,
                                              second=0)
     return (tomorrow_4am - datetime.datetime.now(tz)).seconds

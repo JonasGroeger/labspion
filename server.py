@@ -5,25 +5,20 @@ import json
 
 from flask.templating import render_template
 from flask import Response
+from flask import Flask, redirect, url_for
 
-import database
-from main import PROJECT_DIR
+import client
+from common import PROJECT_PATH
 
 
 __author__ = u'Jonas Gröger <jonas.groeger@gmail.com>'
 
-from flask import Flask, redirect, url_for
-
-
 app = Flask(__name__)
-app.config.update(dict(
-    DATABASE=os.path.join(PROJECT_DIR, 'labspion.db'),
-    DEBUG=True,
-    SECRET_KEY='JAS)Dha9sdh9asDHASd',
-    USERNAME='nimda',
-    PASSWORD='super-gut-yeah-21'
-))
-db = database.Database(app.config['DATABASE'])
+app.config.update({
+    'DATABASE': os.path.join(PROJECT_PATH, 'labspion.db'),
+    'DEBUG': True
+})
+db = client.Database(app.config['DATABASE'])
 
 
 @app.route('/')
