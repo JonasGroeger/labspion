@@ -1,6 +1,5 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
-import os
 import json
 
 from flask.templating import render_template
@@ -8,14 +7,14 @@ from flask import Response
 from flask import Flask, redirect, url_for
 
 import client
-from common import PROJECT_PATH
+from labspion.common import DATABASE_FILE
 
 
 __author__ = u'Jonas Gröger <jonas.groeger@gmail.com>'
 
 app = Flask(__name__)
 app.config.update({
-    'DATABASE': os.path.join(PROJECT_PATH, 'database', 'labspion.db'),
+    'DATABASE': DATABASE_FILE,
     'DEBUG': True
 })
 db = client.Database(app.config['DATABASE'])

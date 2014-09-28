@@ -121,7 +121,7 @@ tbody > tr > td, p.lead, p.lead > em {
 }
 
 body {
-    background:url("../img/bg.png") fixed no-repeat bottom right;
+    background: url("../img/bg.png") fixed no-repeat bottom right;
     background-size: contain;
 }
 

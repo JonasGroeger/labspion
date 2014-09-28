@@ -53,27 +53,23 @@ class Database(object):
         self.connection = None
         self.cursor = None
 
-    def _db_closed(self, action):
-        if not all([self.connection, self.cursor]):
-            logger.warn('Trying to "{}" but connection or cursor is closed.'.format(action))
-            return True
-        return False
-
     def open(self):
-        self.connection = sqlite3.connect(self.filename)
-        self.cursor = self.connection.cursor()
+        if not all([self.connection, self.cursor]):
+            self.connection = sqlite3.connect(self.filename)
+            self.cursor = self.connection.cursor()
         return self.connection, self.cursor
 
     def close(self):
         self.cursor.close()
+        self.cursor = None
         self.connection.close()
+        self.connection = None
 
     def insert(self, clients_json):
-        if self._db_closed('insert'):
-            self.open()
-        self.cursor.executemany('INSERT INTO labspion VALUES (NULL ,?,?,?,?)', clients_json)
+        self.open()
+        self.cursor.executemany('INSERT INTO labspion VALUES (NULL,?,?,?,?)', clients_json)
         self.connection.commit()
-        logger.debug('Inserted {} clients into DB.'.format(len(clients_json)))
+        logger.info('Inserted {} clients into DB.'.format(len(clients_json)))
 
     def clients(self):
         self.open()
@@ -81,18 +77,15 @@ class Database(object):
         clients = self.cursor.execute(sql)
         clients_json = [{'mac': c[0], 'ipv4': c[1], 'seen': utils.seconds_ago(c[2]), 'hostname': c[3]} for c in
                         clients]
-        logger.debug('Returned {} clients to caller.'.format(len(clients_json)))
+        logger.info('Returned {} clients to caller.'.format(len(clients_json)))
         return clients_json
 
     def truncate(self):
-        if self._db_closed('truncate'):
-            self.open()
+        self.open()
         self.connection.execute('DELETE FROM labspion')
         self.connection.execute('DELETE FROM SQLITE_SEQUENCE WHERE name="labspion"')
         self.connection.commit()
-        self.close()
-        logger.debug('Truncated "{}".'.format(self.filename))
-        self.open()
+        logger.info('Truncated "{}".'.format(self.filename))
 
 
 class Labspion(object):
@@ -106,14 +99,19 @@ class Labspion(object):
 
     def run(self):
         while True:
-            clients_dict = self.router.clients()
+            try:
+                clients_dict = self.router.clients()
 
-            # We need to make sure the order is right
-            clients_tuple = Labspion._database_tuple(clients_dict)
+                # We need to make sure the order is right
+                clients_tuple = Labspion._database_tuple(clients_dict)
 
-            self.database.insert(clients_tuple)
-            logger.debug('Labspion is sleeping for 10 seconds.')
-            time.sleep(10)
+                self.database.insert(clients_tuple)
+                logger.debug('Labspion is sleeping for 10 seconds.')
+                time.sleep(10)
+
+            # Run forever, even if there are errors
+            except Exception:
+                pass
 
 
 class Router(object):
@@ -159,13 +157,11 @@ class DDWRT(Router):
     def _get_clients_raw(self):
         info_page = self.conf.internal()
         response = requests.get(info_page)
-        while response.status_code != 200:
-            logger.error("Could not retrieve {} (Code {}). Retrying...".format(info_page, response.status_code))
-            response = requests.get(info_page)
         logger.info('Got response from router with code {}.'.format(response.status_code))
-        return self._convert_to_clients(response.text) or []
+        return DDWRT._convert_to_clients(response.text) or []
 
-    def _convert_to_clients(self, router_info_all):
+    @staticmethod
+    def _convert_to_clients(router_info_all):
         # Split router info in lines and filter empty info
         router_info_lines = filter(None, router_info_all.split("\n"))
 
