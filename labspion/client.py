@@ -1,20 +1,19 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 import ConfigParser
+import abc
 import logging
-import re
 import sqlite3
 import time
 
 import requests
 
-import trollius as asyncio
-
 import utils
-from utils import seconds_until_hour
 
 
 __author__ = u'Jonas Gröger <jonas.groeger@gmail.com>'
+
+logger = logging.getLogger('labspion.client')
 
 
 class Configuration(object):
@@ -29,15 +28,14 @@ class Configuration(object):
             raise IOError('Could not find configuration file "{}".'.format(self.ini_file))
         return config
 
-    def login_url(self):
-        url = self.config.get(self.section, 'url')
-        page_login = self.config.get(self.section, 'page_login')
-        return url + page_login
+    def internal(self):
+        return self.config.get(self.section, 'internal') + self.page()
 
-    def devices_url(self):
-        url = self.config.get(self.section, 'url')
-        page_devices = self.config.get(self.section, 'page_devices')
-        return url + page_devices
+    def external(self):
+        return self.config.get(self.section, 'external') + self.page()
+
+    def page(self):
+        return self.config.get(self.section, 'page')
 
     def username(self):
         return self.config.get(self.section, 'username')
@@ -57,7 +55,7 @@ class Database(object):
 
     def _db_closed(self, action):
         if not all([self.connection, self.cursor]):
-            logging.warn('Trying to "{}" but connection or cursor is closed.'.format(action))
+            logger.warn('Trying to "{}" but connection or cursor is closed.'.format(action))
             return True
         return False
 
@@ -75,7 +73,7 @@ class Database(object):
             self.open()
         self.cursor.executemany('INSERT INTO labspion VALUES (NULL ,?,?,?,?)', clients_json)
         self.connection.commit()
-        self.close()
+        logger.debug('Inserted {} clients into DB.'.format(len(clients_json)))
 
     def clients(self):
         self.open()
@@ -83,20 +81,18 @@ class Database(object):
         clients = self.cursor.execute(sql)
         clients_json = [{'mac': c[0], 'ipv4': c[1], 'seen': utils.seconds_ago(c[2]), 'hostname': c[3]} for c in
                         clients]
-        self.close()
+        logger.debug('Returned {} clients to caller.'.format(len(clients_json)))
         return clients_json
 
-    @asyncio.coroutine
     def truncate(self):
-        while True:
-            yield asyncio.From(asyncio.sleep(seconds_until_hour(4)))
-            if self._db_closed('truncate'):
-                self.open()
-            self.connection.execute('DELETE FROM labspion')
-            self.connection.execute('DELETE FROM SQLITE_SEQUENCE WHERE name="labspion"')
-            self.connection.commit()
-            self.close()
+        if self._db_closed('truncate'):
             self.open()
+        self.connection.execute('DELETE FROM labspion')
+        self.connection.execute('DELETE FROM SQLITE_SEQUENCE WHERE name="labspion"')
+        self.connection.commit()
+        self.close()
+        logger.debug('Truncated "{}".'.format(self.filename))
+        self.open()
 
 
 class Labspion(object):
@@ -108,52 +104,46 @@ class Labspion(object):
     def _database_tuple(clients_dict):
         return [(c['mac'], c['ipv4'], c['seen'], c['hostname']) for c in clients_dict]
 
-    @asyncio.coroutine
     def run(self):
         while True:
-            clients_dict = self.router.recv_clients()
+            clients_dict = self.router.clients()
 
             # We need to make sure the order is right
             clients_tuple = Labspion._database_tuple(clients_dict)
 
             self.database.insert(clients_tuple)
-            yield asyncio.From(asyncio.sleep(10))
+            logger.debug('Labspion is sleeping for 10 seconds.')
+            time.sleep(10)
 
 
 class Router(object):
-    def __init__(self, urls, auth, hostnames=None):
-        if not hostnames:
-            self.hostnames = dict()
-        else:
-            self.hostnames = hostnames
-        self.urls = urls
-        self.auth = auth
-        self._client_separator = ' @\\#$\\&*! '
-        self._clients_js_var_regex = 'var attach_device_list="(.*)";'
+    __metaclass__ = abc.ABCMeta
 
-    def send_login(self):
-        requests.get(self.urls['login'], auth=self.auth)
+    @abc.abstractmethod
+    def clients(self):
+        """Retrieve a list of all clients logged in a router. Each element contains mac, ipv4, seen and a hostname."""
+        return
 
-    def recv_clients(self):
+
+class DDWRT(Router):
+    def __init__(self, conf, hostnames):
+        self.hostnames = hostnames
+        self.conf = conf
+        self.auth = self.conf.auth()
+
+    def clients(self):
         """ Receives all currently logged in users in a wifi network.
 
         :rtype : list
         :return: Returns a list of dicts, containing the following keys: mac, ipv4, seen, hostname
         """
-        clients = self._get_clients()
+        clients = self._get_clients_raw()
 
         clients_json = []
-        for client_as_string in clients:
-            client = client_as_string.split(' ')
-            client_ipv4 = client[0].strip()
-            client_mac = client[1].strip()
-
-            # The hostname is is somestimes 'unknown'.
-            hostname_string = client[2].strip()
-            hostname_from_router = hostname_string if hostname_string != '&lt;unknown&gt;' else None
-
-            # Hostname lookup order: Hostname table, Hostname from router, 'Unbekannt'
-            client_hostname = self.hostnames[client_mac] or hostname_from_router or u'Unbekannt'
+        for client in clients:
+            client_ipv4 = client[0].strip()  # TODO: Insert actual IPv4 here
+            client_mac = client[0].strip()
+            client_hostname = self.hostnames.get(client_mac, u'Unbekannt').strip()
 
             clients_json.append({
                 'mac': client_mac,
@@ -162,17 +152,31 @@ class Router(object):
                 'hostname': client_hostname,
             })
 
+        logger.debug('The router got us {} clients.'.format(len(clients_json)))
+        logger.debug(str(clients_json))
         return clients_json
 
-    def _get_clients(self):
-        response = requests.get(self.urls['devices'], auth=self.auth)
+    def _get_clients_raw(self):
+        info_page = self.conf.internal()
+        response = requests.get(info_page)
         while response.status_code != 200:
-            logging.error('Could not retrieve {} (Code {}).'.format(self.urls['devices'], response.status_code))
-            response = requests.get(self.urls['devices'], auth=self.auth)
-        return self._clients_from_html(response.text) or []
+            logger.error("Could not retrieve {} (Code {}). Retrying...".format(info_page, response.status_code))
+            response = requests.get(info_page)
+        logger.info('Got response from router with code {}.'.format(response.status_code))
+        return self._convert_to_clients(response.text) or []
 
-    def _clients_from_html(self, html):
-        first_script = html.partition('<script>')[2].partition('</script>')[0]
-        clients_js_var = re.search(self._clients_js_var_regex, first_script).group(1)
-        no_clients = not bool(clients_js_var.strip())
-        return [] if no_clients else clients_js_var.split(self._client_separator)
+    def _convert_to_clients(self, router_info_all):
+        # Split router info in lines and filter empty info
+        router_info_lines = filter(None, router_info_all.split("\n"))
+
+        # Get key / value of router info
+        router_info_items = {x[1:-1].split("::") for x in router_info_lines}
+
+        # Get client info as a list
+        client_info = router_info_items['active_wireless'].replace("'", "").split(",")
+
+        # Group the list by each individual client
+        # [['8C:70:5A:7A:2F:50', 'ath0', '0:20:45', '65M', '115M', '-50', '-92', '42', '540'], ...]
+        clients = utils.groupn(client_info, 9)
+
+        return clients if (len(clients) > 0) else []

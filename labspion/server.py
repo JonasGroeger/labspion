@@ -15,7 +15,7 @@ __author__ = u'Jonas Gröger <jonas.groeger@gmail.com>'
 
 app = Flask(__name__)
 app.config.update({
-    'DATABASE': os.path.join(PROJECT_PATH, 'labspion.db'),
+    'DATABASE': os.path.join(PROJECT_PATH, 'database', 'labspion.db'),
     'DEBUG': True
 })
 db = client.Database(app.config['DATABASE'])

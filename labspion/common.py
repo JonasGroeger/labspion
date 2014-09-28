@@ -4,4 +4,4 @@ import os
 
 __author__ = u'Jonas Gröger <jonas.groeger@gmail.com>'
 
-PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
+PROJECT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

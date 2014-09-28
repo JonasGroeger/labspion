@@ -20,3 +20,7 @@ def seconds_until_hour(hours):
                                              minute=0,
                                              second=0)
     return (tomorrow_4am - datetime.datetime.now(tz)).seconds
+
+
+def groupn(l, n):
+    return map(list, zip(*(iter(l),) * n))
