@@ -1,12 +1,9 @@
-#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 import ConfigParser
 import abc
 import logging
 import sqlite3
 import time
-
-import requests
 
 import utils
 
@@ -99,19 +96,15 @@ class Labspion(object):
 
     def run(self):
         while True:
-            try:
-                clients_dict = self.router.clients()
+            clients_dict = self.router.clients()
 
-                # We need to make sure the order is right
-                clients_tuple = Labspion._database_tuple(clients_dict)
+            # We need to make sure the order is right
+            clients_tuple = Labspion._database_tuple(clients_dict)
 
-                self.database.insert(clients_tuple)
-                logger.debug('Labspion is sleeping for 10 seconds.')
-                time.sleep(10)
+            self.database.insert(clients_tuple)
+            logger.debug('Labspion is sleeping for 10 seconds.')
+            time.sleep(10)
 
-            # Run forever, even if there are errors
-            except Exception:
-                pass
 
 
 class Router(object):
@@ -123,56 +116,3 @@ class Router(object):
         return
 
 
-class DDWRT(Router):
-    def __init__(self, conf, hostnames):
-        self.hostnames = hostnames
-        self.conf = conf
-        self.auth = self.conf.auth()
-
-    def clients(self):
-        """ Receives all currently logged in users in a wifi network.
-
-        :rtype : list
-        :return: Returns a list of dicts, containing the following keys: mac, ipv4, seen, hostname
-        """
-        clients = self._get_clients_raw()
-
-        clients_json = []
-        for client in clients:
-            client_ipv4 = client[0].strip()  # TODO: Insert actual IPv4 here
-            client_mac = client[0].strip()
-            client_hostname = self.hostnames.get(client_mac, u'Unbekannt').strip()
-
-            clients_json.append({
-                'mac': client_mac,
-                'ipv4': client_ipv4,
-                'seen': int(time.time()),
-                'hostname': client_hostname,
-            })
-
-        logger.debug('The router got us {} clients.'.format(len(clients_json)))
-        logger.debug(str(clients_json))
-        return clients_json
-
-    def _get_clients_raw(self):
-        info_page = self.conf.internal()
-        response = requests.get(info_page)
-        logger.info('Got response from router with code {}.'.format(response.status_code))
-        return DDWRT._convert_to_clients(response.text) or []
-
-    @staticmethod
-    def _convert_to_clients(router_info_all):
-        # Split router info in lines and filter empty info
-        router_info_lines = filter(None, router_info_all.split("\n"))
-
-        # Get key / value of router info
-        router_info_items = {x[1:-1].split("::") for x in router_info_lines}
-
-        # Get client info as a list
-        client_info = router_info_items['active_wireless'].replace("'", "").split(",")
-
-        # Group the list by each individual client
-        # [['8C:70:5A:7A:2F:50', 'ath0', '0:20:45', '65M', '115M', '-50', '-92', '42', '540'], ...]
-        clients = utils.groupn(client_info, 9)
-
-        return clients if (len(clients) > 0) else []
