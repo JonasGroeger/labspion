@@ -21,10 +21,10 @@
 
             {% for client in clients %}
             <tr>
-                <td>{{ client.mac }}</td>
-                <td>{{ client.ipv4 }}</td>
-                <td>{{ client.seen }}</td>
                 <td>{{ client.hostname|safe }}</td>
+                <td>{{ client.seen }}</td>
+                <td>{{ client.ipv4 }}</td>
+                <td>{{ client.mac }}</td>
             </tr>
             {% endfor %}
 
