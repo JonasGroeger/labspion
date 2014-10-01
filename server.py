@@ -6,7 +6,7 @@ from flask.templating import render_template
 from flask import Response
 from flask import Flask, redirect, url_for
 
-import client
+from labspion import client
 import labspion
 
 

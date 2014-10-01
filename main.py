@@ -20,7 +20,7 @@ logger = logging.getLogger('labspion')
 
 
 def main():
-    hostnames = json.load(codecs.open('hostnames.txt', encoding="UTF-8"))
+    hostnames = json.load(codecs.open('hostnames.txt', encoding='UTF-8'))
 
     configuration = client.Configuration(CONFIGURATION_FILE, section='labspion')
     database = client.Database(DATABASE_FILE)
