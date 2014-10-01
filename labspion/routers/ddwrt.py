@@ -66,11 +66,11 @@ class DDWRT(Router):
         # Get key / value of router info
         router_info_items = dict()
         for item in router_info_lines:
-            key, value = item[1:-1].split("::") # Remove curly braces and split
+            key, value = item[1:-1].split("::")  # Remove curly braces and split
             router_info_items[key.strip()] = value.strip()
 
         # Get client info as a list
-        arp_table = utils.groupn(router_info_items['arp_table'].replace("'","").split(","), 4)
-        dhcp_leases = utils.groupn(router_info_items['dhcp_leases'].replace("'","").split(","), 5)
+        arp_table = utils.groupn(router_info_items['arp_table'].replace("'", "").split(","), 4)
+        dhcp_leases = utils.groupn(router_info_items['dhcp_leases'].replace("'", "").split(","), 5)
 
         return arp_table if (len(arp_table) > 0) else []

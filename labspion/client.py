@@ -106,7 +106,6 @@ class Labspion(object):
             time.sleep(10)
 
 
-
 class Router(object):
     __metaclass__ = abc.ABCMeta
 
