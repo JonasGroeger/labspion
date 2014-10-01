@@ -5,8 +5,7 @@ import json
 import logging
 import sys
 
-from labspion import client
-from labspion.common import CONFIGURATION_FILE, DATABASE_FILE
+from labspion import client, CONFIGURATION_FILE, DATABASE_FILE
 from labspion.routers import ddwrt
 
 

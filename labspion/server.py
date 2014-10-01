@@ -7,14 +7,14 @@ from flask import Response
 from flask import Flask, redirect, url_for
 
 import client
-from labspion.common import DATABASE_FILE
+import labspion
 
 
 __author__ = u'Jonas Gröger <jonas.groeger@gmail.com>'
 
 app = Flask(__name__)
 app.config.update({
-    'DATABASE': DATABASE_FILE,
+    'DATABASE': labspion.DATABASE_FILE,
     'DEBUG': True
 })
 db = client.Database(app.config['DATABASE'])
