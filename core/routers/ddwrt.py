@@ -5,8 +5,8 @@ import time
 import requests
 from requests.structures import CaseInsensitiveDict
 
-from labspion import utils
-from labspion.client import Router
+from core import utils
+from core.client import Router
 
 
 __author__ = u'Jonas Gröger <jonas.groeger@gmail.com>'

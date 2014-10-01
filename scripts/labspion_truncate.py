@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
-from labspion import client, DATABASE_FILE
+from core import client, DATABASE_FILE
 
 
 __author__ = u'Jonas Gröger <jonas.groeger@gmail.com>'

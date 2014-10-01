@@ -5,19 +5,15 @@ import json
 from flask.templating import render_template
 from flask import Response
 from flask import Flask, redirect, url_for
-
-from labspion import client
-import labspion
-
+from core import client, DATABASE_FILE
 
 __author__ = u'Jonas Gröger <jonas.groeger@gmail.com>'
 
 app = Flask(__name__)
 app.config.update({
-    'DATABASE': labspion.DATABASE_FILE,
     'DEBUG': True
 })
-db = client.Database(app.config['DATABASE'])
+db = client.Database(DATABASE_FILE)
 
 
 @app.route('/')

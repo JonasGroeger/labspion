@@ -5,8 +5,8 @@ import json
 import logging
 import sys
 
-from labspion import client, CONFIGURATION_FILE, DATABASE_FILE
-from labspion.routers import ddwrt
+from core import client, CONFIGURATION_FILE, DATABASE_FILE
+from core.routers import ddwrt
 
 
 __author__ = u'Jonas Gröger <jonas.groeger@gmail.com>'
