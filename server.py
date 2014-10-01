@@ -10,9 +10,6 @@ from core import client, DATABASE_FILE
 __author__ = u'Jonas Gröger <jonas.groeger@gmail.com>'
 
 app = Flask(__name__)
-app.config.update({
-    'DEBUG': True
-})
 db = client.Database(DATABASE_FILE)
 
 
